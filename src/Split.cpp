@@ -32,7 +32,8 @@ Split::Split()
       myRefSection(),
       myOutEndPos(0),
       myChunkSize(0),
-      myRecPos(0)
+      myRecPos(0),
+      myEmptyGlfs(false)
 {
     
 }
@@ -78,6 +79,7 @@ int Split::execute(int argc, char **argv)
         LONG_PARAMETER_GROUP("Optional Other Parameters")
         LONG_STRINGPARAMETER("outBase", &myOutBase)
         LONG_INTPARAMETER("chunkSize", &myChunkSize)
+        LONG_PARAMETER("emptyGlfs", &myEmptyGlfs)
         LONG_PARAMETER("params", &params)
         END_LONG_PARAMETERS();
    
@@ -166,9 +168,36 @@ void Split::writeRecord(GlfRecord& record,
         // New file.
         uint32_t startPos = (uint32_t)(myRecPos/myChunkSize);
         startPos *= myChunkSize;
+        uint32_t prevEndPos = myOutEndPos;
         myOutEndPos = startPos + myChunkSize;
         ++startPos; // increase start position by 1
-        newName = myOutBase + '.' + startPos + '.' + myOutEndPos + ".glf";
+        std::string refName;
+        myRefSection.getName(refName);
+
+        if(myEmptyGlfs)
+        {
+            // Write empty glfs from the previous position to this one.
+            if(newRef)
+            {
+                prevEndPos = 0;
+            }
+            uint32_t prevStartPos = prevEndPos + 1;
+            prevEndPos += myChunkSize;
+            while(myOutEndPos != prevEndPos)
+            {
+                // until we get to the current chunk, write empty GLFs.
+                newName = myOutBase + '.' + refName.c_str() + '.' 
+                    + prevStartPos + '.' + prevEndPos + ".glf";
+                prevEndPos += myChunkSize;
+                prevStartPos += myChunkSize;
+                myOutFile.openForWrite(newName);
+                myOutFile.writeHeader(myHeader);
+                //                myOutFile.writeRefSection(myRefSection);
+            }
+        }
+
+        newName = myOutBase + '.' + refName.c_str() + '.' + startPos + '.' 
+            + myOutEndPos + ".glf";
         myOutFile.openForWrite(newName);
         myOutFile.writeHeader(myHeader);
         myOutFile.writeRefSection(myRefSection);

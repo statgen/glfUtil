@@ -46,6 +46,8 @@ private:
 
     uint32_t myChunkSize;
     uint32_t myRecPos;
+
+    bool myEmptyGlfs;
 };
 
 #endif
