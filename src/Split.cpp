@@ -214,7 +214,6 @@ void Split::writeRecord(GlfRecord& record,
                 prevStartPos += myChunkSize;
                 myOutFile.openForWrite(myGlfOutName);
                 myOutFile.writeHeader(myHeader);
-                //                myOutFile.writeRefSection(myRefSection);
             }
         }
 
@@ -234,10 +233,16 @@ void Split::writeRecord(GlfRecord& record,
 
 void Split::genOutGlfName(uint32_t startPos, uint32_t endPos, const std::string& refName)
 {
+    // Adjust if at end of chromosome.
+    if(endPos > myRefSection.getRefLen())
+    {
+        endPos = myRefSection.getRefLen();
+    }
     myGlfOutName.Clear();
     if(!myOutDir.IsEmpty())
     {
         myGlfOutName = myOutDir + '/';
+        system("mkdir -p " + myGlfOutName);
     }
     if(myRegionDirs)
     {
