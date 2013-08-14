@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2010-2011  Regents of the University of Michigan
+ *  Copyright (C) 2010-2011,2013  Regents of the University of Michigan
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 
 #include "Dump.h"
+#include "Split.h"
 
 void Usage()
 {
@@ -28,6 +29,8 @@ void Usage()
     std::cerr << "\nPrint Information In Readable Format\n";
     Dump::dumpDescription();
 
+    std::cerr << "\nRewrite GLFs\n";
+    Split::splitDescription();
     std::cerr << std::endl;
     std::cerr << "Usage: " << std::endl;
     std::cerr << "\tglfUtil <tool> [<tool arguments>]" << std::endl;
@@ -50,6 +53,10 @@ int main(int argc, char ** argv)
     if(strcmp(argv[1], "dump") == 0)
     {
         glfExe = new Dump();
+    }
+    else if(strcmp(argv[1], "split") == 0)
+    {
+        glfExe = new Split();
     }
     else
     {

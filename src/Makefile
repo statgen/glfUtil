@@ -1,5 +1,5 @@
 EXE=glfUtil
-TOOLBASE = GlfExecutable Dump
+TOOLBASE = GlfExecutable Dump Split
 SRCONLY = Main.cpp
 HDRONLY = 
 
