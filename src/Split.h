@@ -37,7 +37,10 @@ public:
 private:
     void writeRecord(GlfRecord& record, 
                      bool newRef);
+    void genOutGlfName(uint32_t startPos, uint32_t endPos, const std::string& refName);
 
+    String myGlfOutName;
+    String myOutDir;
     String myOutBase;
     GlfFile myOutFile;
     GlfHeader myHeader;
@@ -48,6 +51,7 @@ private:
     uint32_t myRecPos;
 
     bool myEmptyGlfs;
+    bool myRegionDirs;
 };
 
 #endif

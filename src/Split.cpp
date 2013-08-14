@@ -26,6 +26,8 @@
 
 Split::Split()
     : GlfExecutable(),
+      myGlfOutName(""),
+      myOutDir(""),
       myOutBase(""),
       myOutFile(),
       myHeader(),
@@ -33,7 +35,8 @@ Split::Split()
       myOutEndPos(0),
       myChunkSize(0),
       myRecPos(0),
-      myEmptyGlfs(false)
+      myEmptyGlfs(false),
+      myRegionDirs(false)
 {
     
 }
@@ -55,8 +58,11 @@ void Split::usage()
     std::cerr << "\tRequired Parameters:" << std::endl;
     std::cerr << "\t\t--in        : the GLF file to be read" << std::endl;
     std::cerr << "\tOptional Parameters For Other Operations:\n";
-    std::cerr << "\t\t--outBase   : the base GLF filename to write" << std::endl;
+    std::cerr << "\t\t--outDir    : the output directory to write into (defaults to the outBase directory)" << std::endl;
+    std::cerr << "\t\t--outBase   : the base GLF filename to write (defaults to the same as the input GLF)" << std::endl;
     std::cerr << "\t\t--chunkSize : the region covered by each GLF file" << std::endl;
+    std::cerr << "\t\t--emptyGlfs : write GLFs with just a header for intermediate chunks that are missing data" << std::endl;
+    std::cerr << "\t\t--regionDirs : write output GLFs in chr/start.end/ subdirectories" << std::endl;
     std::cerr << "\t\t--params    : print the parameter settings" << std::endl;
     std::cerr << std::endl;
 }
@@ -67,19 +73,25 @@ int Split::execute(int argc, char **argv)
     // Extract command line arguments.
     String inFile = "";
     bool params = false;
+    myGlfOutName = "";
+    myOutDir = "";
     myOutBase = "";
     myOutEndPos = 0;
     myChunkSize = 5000000;
     myRecPos = 0;
+    myEmptyGlfs = false;
+    myRegionDirs = false;
 
     ParameterList inputParameters;
     BEGIN_LONG_PARAMETERS(longParameterList)
         LONG_PARAMETER_GROUP("Required Parameters")
         LONG_STRINGPARAMETER("in", &inFile)
         LONG_PARAMETER_GROUP("Optional Other Parameters")
+        LONG_STRINGPARAMETER("outDir", &myOutDir)
         LONG_STRINGPARAMETER("outBase", &myOutBase)
         LONG_INTPARAMETER("chunkSize", &myChunkSize)
         LONG_PARAMETER("emptyGlfs", &myEmptyGlfs)
+        LONG_PARAMETER("regionDirs", &myRegionDirs)
         LONG_PARAMETER("params", &params)
         END_LONG_PARAMETERS();
    
@@ -102,6 +114,19 @@ int Split::execute(int argc, char **argv)
     if(myOutBase.IsEmpty())
     {
         myOutBase = inFile.Left(inFile.FindLastChar('.'));
+    }
+
+    // Check if outBase has a path.
+    int lastDirChar = myOutBase.FindLastChar('/');
+    if(lastDirChar >= 0)
+    {
+        // Check if outDir needs to be set.
+        if(myOutDir.IsEmpty())
+        {
+            myOutDir = myOutBase.Left(lastDirChar);
+        }
+        // Remove the directory from outBase
+        myOutBase = myOutBase.SubStr(lastDirChar);
     }
 
     if(params)
@@ -149,8 +174,6 @@ int Split::execute(int argc, char **argv)
 void Split::writeRecord(GlfRecord& record, 
                         bool newRef)
 {
-    static String newName;
-
     // Get the position for this record.
     if(newRef)
     {
@@ -186,19 +209,17 @@ void Split::writeRecord(GlfRecord& record,
             while(myOutEndPos != prevEndPos)
             {
                 // until we get to the current chunk, write empty GLFs.
-                newName = myOutBase + '.' + refName.c_str() + '.' 
-                    + prevStartPos + '.' + prevEndPos + ".glf";
+                genOutGlfName(prevStartPos, prevEndPos, refName);
                 prevEndPos += myChunkSize;
                 prevStartPos += myChunkSize;
-                myOutFile.openForWrite(newName);
+                myOutFile.openForWrite(myGlfOutName);
                 myOutFile.writeHeader(myHeader);
                 //                myOutFile.writeRefSection(myRefSection);
             }
         }
 
-        newName = myOutBase + '.' + refName.c_str() + '.' + startPos + '.' 
-            + myOutEndPos + ".glf";
-        myOutFile.openForWrite(newName);
+        genOutGlfName(startPos, myOutEndPos, refName);
+        myOutFile.openForWrite(myGlfOutName);
         myOutFile.writeHeader(myHeader);
         myOutFile.writeRefSection(myRefSection);
 
@@ -208,4 +229,27 @@ void Split::writeRecord(GlfRecord& record,
 
     // Write the record.
     myOutFile.writeRecord(record);
+}
+
+
+void Split::genOutGlfName(uint32_t startPos, uint32_t endPos, const std::string& refName)
+{
+    myGlfOutName.Clear();
+    if(!myOutDir.IsEmpty())
+    {
+        myGlfOutName = myOutDir + '/';
+    }
+    if(myRegionDirs)
+    {
+        myGlfOutName += "chr";
+        myGlfOutName += refName.c_str();
+        myGlfOutName += "/";
+        myGlfOutName += startPos;
+        myGlfOutName += ".";
+        myGlfOutName += endPos;
+        myGlfOutName += "/";
+        system("mkdir -p " + myGlfOutName);
+    }
+    myGlfOutName += myOutBase + '.' + refName.c_str() + '.' 
+        + startPos + '.' + endPos + ".glf";
 }
