@@ -116,8 +116,12 @@ int Dump::execute(int argc, char **argv)
                   << "; RefLen = " << refSection.getRefLen() << "\n";
         int64_t numSectionRecords = 0;
         GlfRecord record;
+        int pos = 0;
         while(glfIn.getNextRecord(record))
         {
+            // Print the position.
+            pos += record.getOffset();
+            std::cout << "position: " << pos << "\n\t";
             record.print();
             ++numSectionRecords;
         }
